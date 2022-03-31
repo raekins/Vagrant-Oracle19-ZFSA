@@ -1,0 +1,117 @@
+---
+
+# Install Linux packages
+- name: install Linux packages
+  yum:
+    name: "{{ packages }}"
+  vars:
+    packages:
+    - python-pip
+    - expect
+    - libaio
+    - yum-utils
+    - sg3_utils
+    - net-snmp 
+    - net-snmp-utils
+    - iscsi-initiator-utils
+
+- name: Install the 'Development tools' package group
+  yum:
+    name: "@Development tools"
+    state: present
+    
+- name: Install the 'X Windows System' package group
+  yum:
+    name: "@X Window System"
+    state: present
+
+# Upgrade packages
+- name: upgrade all packages
+  yum:
+    name: "*"
+    state: latest
+
+- name: iscsid.socket start
+  service:
+    name: iscsid.socket
+    state: started
+    enabled: yes
+
+# Perform iSCSI Discovery      
+- name: Discover IQN
+  shell: iscsiadm -m discovery -t st -p {{ zfsaIP }}
+  register: result
+
+- set_fact:
+    iqn1: "{{ result.stdout_lines[0] }}"
+
+- debug:
+    msg: "IQN is {{ iqn1 }}"
+
+- name: iscsi Login
+  shell: iscsiadm -m node –login
+  ignore_errors: True
+  register: result
+
+- debug:
+    msg: "isci Login is {{ result.stdout }}"
+
+- name: enable automatic login
+  shell: iscsiadm -m node -L automatic
+
+- name: scsi rescan
+  shell: rescan-scsi-bus.sh
+  register: result
+
+- name: Create a xfs filesystem on iSCSI lun
+  filesystem:
+    fstype: xfs
+    dev: /dev/sdc
+  ignore_errors: True
+
+- name: Create oracle mount point
+  file:
+    path: /u02
+    state: directory
+    mode: 0777
+
+- name: Mount iSCSI lun
+  mount:
+    path: /u02
+    src: /dev/sdc
+    fstype: xfs
+    state: mounted  
+
+# Update /etc/hosts
+- name: set /etc/hosts remove 127.0.0.1 for hostname
+  lineinfile: 
+    path: /etc/hosts 
+    regexp: '^127\.0\.0\.1.*{{ ansible_hostname }}'
+    state: absent
+
+- name: Update hostfile
+  lineinfile:
+    path: /etc/hosts
+    state: present
+    line: "{{ item }}"
+  with_items:
+    - '{{ ansible_eth1.ipv4.address }} {{ ansible_fqdn }} {{ ansible_hostname }}'
+    - '{{ zfsaIP }} {{ zfsaName}}.localdomain {{ zfsaName }}'
+
+- name: Update fstab
+  lineinfile:
+    path: /etc/fstab
+    state: present
+    line: "{{ item }}"
+  with_items:
+    - '{{ zfsaName }}:{{ zfsaShare }}  {{ dbDest }}    nfs  rw,bg,hard,rsize=1048576,wsize=1048576,vers=4,nointr,timeo=600,tcp,actimeo=0'
+    - '/dev/sdc /u02 xfs' 
+
+# Disable Firewalld
+- name: Disable firewalld
+  shell: systemctl disable firewalld
+
+# Disable SELinux
+- name: Disable SELinux
+  selinux:
+    state: disabled

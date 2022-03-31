@@ -1,0 +1,87 @@
+---
+
+# Install Oracle 19c preinstall package
+- name: install 19c preinstall package
+  yum:
+    name: "oracle-database-preinstall-19c"
+
+- name: Install Oracle 19c rpm from a local file
+  yum:
+    name: "/vagrant/software/oracle-database-ee-19c-1.0-1.x86_64.rpm"
+    state: present
+
+# Create oranfstab
+- name: Create oranfstab file
+  lineinfile:
+    path: "/opt/oracle/product/19c/dbhome_1/dbs/oranfstab"
+    state: present
+    owner: oracle
+    group: oinstall
+    create: true
+    line: "{{ item }}"
+  with_items:
+    - 'server: {{ zfsaName }}'
+    - 'local: {{ ansible_eth1.ipv4.address }} path: {{ zfsaIP }}'
+    - 'export: {{ zfsaName }}:{{ zfsaShare }}  mount: {{ dbDest }}'
+    - 'nfs_version: nfsv4.1'
+    - 'security_default: sys'
+
+# Check for directory
+- name: Check for {{ dbDest }} directory.
+  stat:
+    path: "{{ dbDest }}"
+  register: ora_dir
+
+- name: "echo directory already existed"
+  debug:
+    msg: "the {{ dbDest }} directory already existed"
+  when: ora_dir.stat.exists
+
+# Create u01 directory
+- name: Create data directory 
+  file:
+    path: "{{ dbDest }}" 
+    state: directory
+    recurse: yes
+    owner: oracle
+    group: oinstall
+    mode: '0777'
+  when: ora_dir.stat.exists == false
+
+# Mount {{ zfsaShare }}
+- name: Mount Share
+  mount:
+    path: "{{ dbDest }}"
+    src: "{{ zfsaName}}:{{ zfsaShare }}"
+    state: mounted 
+    fstype: nfs
+      
+# Copy Database config file
+- name: Copy Database config file
+  copy:
+    src:  /etc/sysconfig/oracledb_ORCLCDB-19c.conf
+    dest: "/etc/sysconfig/oracledb_{{ dbName }}CDB-19c.conf"
+    mode: 0644
+
+# Update config
+- name: Update config
+  replace:
+    path: "/etc/sysconfig/oracledb_{{ dbName }}CDB-19c.conf"
+    regexp: '/opt/oracle/oradata'
+    replace: "{{ dbDest }}/oradata"
+
+# Copy init.d
+- name: Copy init.d file
+  copy:
+    src:  /etc/init.d/oracledb_ORCLCDB-19c
+    dest: "/etc/init.d/oracledb_{{ dbName }}CDB-19c"
+    remote_src: yes
+    mode: 0755
+
+# Update init.d
+- name: Update init.d
+  replace:
+    path: "/etc/init.d/oracledb_{{ dbName }}CDB-19c"
+    regexp: 'ORCL'
+    replace: "{{ dbName }}"
+

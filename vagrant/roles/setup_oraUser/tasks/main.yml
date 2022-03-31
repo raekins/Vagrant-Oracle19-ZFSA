@@ -1,0 +1,49 @@
+# Update bash_profile
+- name: Update bash_profile
+  lineinfile:
+    path: /home/oracle/.bash_profile
+    state: present
+    line: "{{ item }}"
+  with_items:
+    - 'export ORACLE_BASE=/opt/oracle'
+    - 'export ORACLE_HOME=$ORACLE_BASE/product/19c/dbhome_1'
+    - 'export LD_LIBRARY_PATH=$ORACLE_HOME/lib'
+    - 'export ORACLE_SID={{ dbName }}'
+    - 'export ORACLE_PATH=/home/oracle/sql'
+    - 'export PDB_NAME={{ pdbName}}'
+    - 'export PATH=$PATH:$ORACLE_HOME/bin'
+
+# Create SQL directory
+- name: Create SQL directory
+  file:
+    path: /home/oracle/sql
+    state: directory
+    mode: 0755
+
+# Create Scripts directory
+- name: Create Scripts directory
+  file:
+    path: /home/oracle/scripts
+    state: directory
+    mode: 0755
+
+# Copy SQL files
+- name: Copy SQL files
+  copy:
+    src: files/sql/
+    dest: /home/oracle/sql
+    mode: 0644
+
+# DBCA create command file
+- name: Copy DBCA create command file
+  template:
+    src:  templates/dbca_silent_create.sh.j2
+    dest: /home/oracle/dbca_silent_create.sh
+    mode: 0755
+
+# DBCA delete command file
+- name: Copy DBCA delete command file
+  template:
+    src:  templates/dbca_silent_delete.sh.j2
+    dest: /home/oracle/dbca_silent_delete.sh
+    mode: 0755
