@@ -14,7 +14,7 @@ For details on how to install and configure the ZFS Appliance for NFS and iSCSI 
 ### Preperation
 Pull this repo
 ```
-% git pull
+% git pull https://github.com/raekins/Vagrant-Oracle19-ZFSA.git
 ```
 Download and copy `oracle-database-ee-19c-1.0-1.x86_64.rpm` into ../vagrant/software/
 
