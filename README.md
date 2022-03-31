@@ -42,9 +42,12 @@ As the vagrant user sudo to `root` or `oracle`, for example
 ```
 $ sudo su - oracle
 ```
-The Ansible playbook creates a DBCA silent installation and delete script in the Oracle home directory, this can be run as-is or ammended as required.
+The Ansible playbook creates a DBCA silent installation script, this can be run as-is or ammended as required.
 ```
 dbca_silent_create.sh
+```
+There is also a DBCA silent delete script.
+```
 dbca_silent_delete.sh
 ```
 ### Authors
