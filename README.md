@@ -1,5 +1,5 @@
 # Vagrant Oracle 19c ZFS Appliance VM
-Fully automatted Vagrant Oracle 19c build using Ansible
+Fully automatted Vagrant Ansible Oracle 19c build using ZFS NFSv4.1 and dNFS 
 
 Pre-requistes
 - VirtualBox
